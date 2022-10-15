@@ -1,21 +1,30 @@
+package tests;
+
+import base.TestBase;
+import models.LombokReqresRequest;
+import models.LombokReqresResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static helpers.CustomApiListener.withCustomTemplates;
 import static io.restassured.RestAssured.given;
 import static io.restassured.http.ContentType.JSON;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.core.Is.is;
+import static specs.LoginSpecs.loginRequestSpec;
+import static specs.LoginSpecs.loginResponseSpec;
 
-public class ReqresTests {
+public class ReqresTests extends TestBase {
 
     @Test
     @DisplayName("Получение списка пользователей")
     public void getListUsers() {
-        String uri = "https://reqres.in/api/users?page=2";
         given()
+                .filter(withCustomTemplates())
                 .log().all()
                 .when()
-                .get(uri)
+                .get("/users?page=2")
                 .then()
                 .log().all()
                 .statusCode(200)
@@ -25,11 +34,11 @@ public class ReqresTests {
     @Test
     @DisplayName("Получение одного пользователя")
     public void getOneUsers() {
-        String uri = "https://reqres.in/api/users/12";
         given()
+                .filter(withCustomTemplates())
                 .log().all()
                 .when()
-                .get(uri)
+                .get("/users/12")
                 .then()
                 .log().all()
                 .statusCode(200)
@@ -39,31 +48,33 @@ public class ReqresTests {
     @Test
     @DisplayName("Успешная авторизация")
     public void successAuth() {
-        BodyReqresRequests requestsBody = new BodyReqresRequests("eve.holt@reqres.in", "cityslicka");
-        String uri = "https://reqres.in/api/login";
-        given()
-                .log().all()
-                .contentType(JSON)
-                .body(requestsBody)
+        LombokReqresRequest requestBody = new LombokReqresRequest();
+        requestBody.setEmail("eve.holt@reqres.in");
+        requestBody.setPassword("cityslicka");
+        LombokReqresResponse response = given()
+                .with().spec(loginRequestSpec)
+                .body(requestBody)
                 .when()
-                .post(uri)
+                .post()
                 .then()
-                .log().all()
-                .statusCode(200)
-                .body("token", is("QpwL5tke4Pnpja7X4"));
+                .spec(loginResponseSpec)
+                .extract()
+                .as(LombokReqresResponse.class);
+
+        assertThat(response.getToken()).isEqualTo("QpwL5tke4Pnpja7X4");
+
     }
 
     @Test
     @DisplayName("Неуспешная авторизация")
     public void failureAuth() {
-        BodyReqresRequests requestsBody = new BodyReqresRequests("eve.holt@reqres.in");
-        String uri = "https://reqres.in/api/login";
+        LombokReqresRequest requestBody = new LombokReqresRequest();
+        requestBody.setEmail("eve.holt@reqres.in");
         given()
-                .log().all()
-                .contentType(JSON)
-                .body(requestsBody)
+                .with().spec(loginRequestSpec)
+                .body(requestBody)
                 .when()
-                .post(uri)
+                .post()
                 .then()
                 .log().all()
                 .statusCode(400)
@@ -73,15 +84,16 @@ public class ReqresTests {
     @Test
     @DisplayName("Создание пользователя")
     public void createUser() {
-        BodyReqresRequests requestsBody = new BodyReqresRequests();
-        requestsBody.setName("morpheus").setJob("leader");
-        String uri = "https://reqres.in/api/users";
+        LombokReqresRequest requestBody = new LombokReqresRequest();
+        requestBody.setName("morpheus");
+        requestBody.setJob("leader");
         given()
+                .filter(withCustomTemplates())
                 .log().all()
                 .contentType(JSON)
-                .body(requestsBody)
+                .body(requestBody)
                 .when()
-                .post(uri)
+                .post("/users")
                 .then()
                 .log().all()
                 .statusCode(201)
