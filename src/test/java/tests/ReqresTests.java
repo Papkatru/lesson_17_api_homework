@@ -3,6 +3,7 @@ package tests;
 import base.TestBase;
 import models.LombokReqresRequest;
 import models.LombokReqresResponse;
+import models.UserData;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -10,12 +11,28 @@ import static helpers.CustomApiListener.withCustomTemplates;
 import static io.restassured.RestAssured.given;
 import static io.restassured.http.ContentType.JSON;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.core.Is.is;
 import static specs.LoginSpecs.loginRequestSpec;
 import static specs.LoginSpecs.loginResponseSpec;
 
 public class ReqresTests extends TestBase {
+
+    @Test
+    @DisplayName("Получение списка пользователей с использованием Groovy")
+    public void getListUsersWithGroovy() {
+        given()
+                .filter(withCustomTemplates())
+                .log().all()
+                .when()
+                .get("/users?page=2")
+                .then()
+                .log().all()
+                .statusCode(200)
+                .body("data.findAll{it.email =~/.*?@reqres.in/}.email.flatten()",
+                        hasItem("george.edwards@reqres.in"));
+    }
 
     @Test
     @DisplayName("Получение списка пользователей")
@@ -34,7 +51,7 @@ public class ReqresTests extends TestBase {
     @Test
     @DisplayName("Получение одного пользователя")
     public void getOneUsers() {
-        given()
+        UserData responseBody = given()
                 .filter(withCustomTemplates())
                 .log().all()
                 .when()
@@ -42,7 +59,8 @@ public class ReqresTests extends TestBase {
                 .then()
                 .log().all()
                 .statusCode(200)
-                .body("data.email", is("rachel.howell@reqres.in"));
+                .body("data.email", is("rachel.howell@reqres.in"))
+                .extract().as(UserData.class);
     }
 
     @Test
@@ -87,7 +105,7 @@ public class ReqresTests extends TestBase {
         LombokReqresRequest requestBody = new LombokReqresRequest();
         requestBody.setName("morpheus");
         requestBody.setJob("leader");
-        given()
+        LombokReqresRequest responseBoby = given()
                 .filter(withCustomTemplates())
                 .log().all()
                 .contentType(JSON)
@@ -97,6 +115,7 @@ public class ReqresTests extends TestBase {
                 .then()
                 .log().all()
                 .statusCode(201)
-                .body("name", is("morpheus"));
+                .body("first_name", is("morpheus"))
+                .extract().as(LombokReqresRequest.class);
     }
 }
